@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from sklearn.impute import KNNImputer
+from sklearn.metrics import recall_score, f1_score, accuracy_score
+from sklearn.metrics import ConfusionMatrixDisplay
 
 cat_col_with_order = ['Day_of_week', 'Age_band_of_driver', 'Driving_experience', 
                   'Service_year_of_vehicle', 'Age_band_of_casualty', 
@@ -49,10 +51,34 @@ def preprocess(df):
     for col in cat_col_with_order:
         df[col] = df[col].map(map_dicts[col])
     return df
+
+def encode(df, encoder):
+    '''function to encode non-null data and replace it in the original data'''      
+        
+    df_enc = df.copy()
+    cat_cols = df_enc.select_dtypes(include='object').columns    
     
+    for col in cat_cols:
+        #retains only non-null values
+        nonulls = np.array(df_enc[col].dropna())
+        #reshapes the data for encoding
+        impute_reshape = nonulls.reshape(-1,1)
+        #encode date
+        impute_ordinal = encoder.fit_transform(impute_reshape)
+        #Assign back encoded values to non-null values
+        df_enc.loc[df_enc[col].notnull(), col] = np.squeeze(impute_ordinal)
+    return df_enc
+
+def impute(df, imputer):
+    return pd.DataFrame(np.round(imputer.fit_transform(df)), columns = df.columns)
+
+
 def label_encoder(df):    
     mask = df.isnull()
-    labels = df.apply(LabelEncoder().fit_transform)
+    le = LabelEncoder    
+    labels = df.apply(le.fit_transform)
     df_label_encoded = labels.where(~mask, df)
     
     return df_label_encoded
+    
+    
